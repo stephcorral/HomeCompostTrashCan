@@ -34,9 +34,9 @@ String greenAlert, yellowAlert, orangeAlert, redAlert;
 void MQTT_connect();
 bool MQTT_ping();
 
-//variables for load cell
+//variables for load cell DT, SCK
 HX711 myScale(A1, A2);
-const int CALIFACTOR =1055;
+const int CALIFACTOR =1045;
 const int SAMPLES = 10;
 float weight, rawData, calibration;
 int offset;
@@ -87,7 +87,9 @@ void loop() {
             Serial.printf("Weight Sent to Adafruit.io = %0.0f\n",weight);
         }
         lastTime = millis();
-        
+        if(weight <=5){
+          weight=0;
+        }
         if(weight <300){
         greenAlert = "<<< Ready for Compost >>>";
         pubAlert.publish(greenAlert);
