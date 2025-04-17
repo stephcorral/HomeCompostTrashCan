@@ -18,6 +18,13 @@
 #include "HX711.h"
 #include "Adafruit_MQTT_SPARK.h"
 #include "credentials.h"
+#include "Air_Quality_Sensor.h"
+#include "neopixel.h"
+#include "Colors.h"
+#include "Adafruit_SSD1306.h"
+#include "Adafruit_GFX.h"
+#include "Adafruit_BME280.h"
+
 
 //create TCP Client
 TCPClient TheClient;
@@ -30,6 +37,32 @@ Adafruit_MQTT_Publish pubAlert = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/fee
 unsigned int last, lastTime;
 float pubValue;
 String greenAlert, yellowAlert, orangeAlert, redAlert; 
+
+//air quality sensor variables
+AirQualitySensor sensor(A0);
+int quality, sensorValue;
+
+//neopixel variables
+const int PIXELCOUNT = 12;
+Adafruit_NeoPixel pixel ( PIXELCOUNT , SPI1 , WS2812B ); 
+
+//OLED variables
+const int OLED_RESET =-1;
+Adafruit_SSD1306 display(OLED_RESET);
+String date, dateTime, timeOnly;
+
+//covered if anything should happen to OLED
+#if (SSD1306_LCDHEIGHT !=64)
+#error("Height incorrect, please fix Adafruit_SSD1306.h!!!");
+#endif
+
+//BME SETUP
+Adafruit_BME280 bme;
+bool status;
+const int hexAddress = 0x76;
+float temp, humidity;
+const int DEGREE_SYM = 0xB0;
+
 //functions for publishing weight
 void MQTT_connect();
 bool MQTT_ping();
@@ -63,6 +96,32 @@ void setup() {
     delay(5000);
     myScale.tare();
     myScale.set_scale(CALIFACTOR);
+
+    //neopixel set up
+    pixel.begin();
+    pixel.setBrightness(20);
+    pixel.show();
+
+    //setup bme
+    status = bme.begin(hexAddress);
+    if(status == false){
+      Serial.printf("Failed to Start!!!");
+    }
+    //OLED Display Startup
+    display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+    display.display();
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setRotation(2);
+    display.setCursor(0,0);
+    display.setTextColor(WHITE);
+    display.display();
+    delay(5000);
+    display.clearDisplay();
+
+    //setup Time and Date
+    Time.zone(-6);
+    Particle.syncTime();
 }
 
 void loop() {
@@ -77,6 +136,23 @@ void loop() {
     weight = myScale.get_units(SAMPLES);
     offset = myScale.get_offset();
     calibration =myScale.get_scale();
+
+    //air quality sensor code
+    quality = sensor.slope();
+    sensorValue = sensor.getValue();
+  
+    Serial.printf("Sensor value: %i\n", sensorValue);
+  
+    if(quality == AirQualitySensor::FORCE_SIGNAL){
+      Serial.println(" HIGH POLLUTION! Force Signal Active!!!!");
+    } else if(quality == AirQualitySensor::HIGH_POLLUTION){
+      Serial.println("High Polution!");
+    } else if(quality == AirQualitySensor::LOW_POLLUTION){
+      Serial.println("Low Pollution!");
+    }else if(quality == AirQualitySensor::FRESH_AIR){
+      Serial.println("Fresh too Def Air!");
+    }
+    delay(5000);
 
     Serial.printf("Weight = %0.02f\r", weight);
     
@@ -94,24 +170,51 @@ void loop() {
         greenAlert = "<<< Ready for Compost >>>";
         pubAlert.publish(greenAlert);
         Serial.println(greenAlert);
-        //set light color
+        pixel.setPixelColor(PIXELCOUNT, green);
+        pixel.show();
         }
         if(weight>300 && weight <500){
           yellowAlert = "<<< Half Way Full >>>";
           pubAlert.publish(yellowAlert);
           Serial.println(yellowAlert);
+          pixel.setPixelColor(PIXELCOUNT, yellow);
+          pixel.show();
         }
         if(weight>500 && weight<600){
           orangeAlert = "<<< Almost Full >>>";
           pubAlert.publish(orangeAlert);
           Serial.println(orangeAlert);
+          pixel.setPixelColor(PIXELCOUNT, orange);
+          pixel.show();
         }
         if(weight>600){
           redAlert = "<<<FULL!!! Empty Out Drawer Please>>>";
           pubAlert.publish(redAlert);
           Serial.println(redAlert);
+          pixel.setPixelColor(PIXELCOUNT, red);
+          pixel.show();
         }
+        pixel.clear();
+        pixel.show();
     }
+    //setting up display
+    dateTime =Time.timeStr();
+    date = dateTime.substring(0,11);
+    timeOnly =dateTime.substring(11,19);
+  
+    //BME set up
+    temp = bme.readTemperature();
+    humidity = bme.readHumidity();
+    temp = (temp * 9/5.0)+32;
+    
+    //OLED displaying
+    display.printf("Date: %s\n",date.c_str());
+    display.printf("Time: %s\n",timeOnly.c_str());
+    display.printf("Temp = %0.0f%c\n",temp, DEGREE_SYM);
+    display.printf("Humidity = %0.0f\n",humidity);
+    display.setCursor(0,0);
+    display.display();
+    display.clearDisplay();
 
 }
 // Function to connect and reconnect as necessary to the MQTT server.
