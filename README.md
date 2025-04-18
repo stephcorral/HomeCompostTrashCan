@@ -22,12 +22,12 @@ Would you allow your trashcan to be a different type of garbage disposal system 
 # Welcome the Home Composting Trash Can
 * This trashcan will accept the trash given at the top layer.
 * Two sections will be available on each side, one for dry and one for wet trash.
-* Blendig and grinding the trash to be easy for worms to feed on.
-* Then it will be mixed together with a small about of hummingbird feed to entice the worms.
+* Blending and grinding the trash to be easy for worms to feed on.
+* In the second layer it will be mixed together the dry and wet blended trash.
 * The third layer will be for decomposing the trash.
 * The trash can will have fans and filters with some areas for placing air fresheners against the side of the bin.
-* On the top of the lid it will have a small display to advise what is happening in the can as well as what it needs. Like if it needs more trash, or if the trash is currently getting decomposed.
-* With access online to the stats of the stages of the trashcan.
+* There is a small display to advise what is happening in the can as well as what it needs.
+* With access online to the stats of the trashcan.
 
 
 # Possible Additions
